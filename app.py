@@ -92,11 +92,11 @@ def check_password():
         """비밀번호 확인"""
         # Secrets에서 비밀번호 가져오기 (없으면 기본값)
         try:
-            correct_password = st.secrets["passwords"]["admin_password"]
+            correct_password = str(st.secrets["passwords"]["admin_password"])
         except:
             correct_password = "칼라미디어2024"  # 기본 비밀번호
         
-        if hmac.compare_digest(st.session_state["password"], correct_password):
+        if hmac.compare_digest(str(st.session_state["password"]), correct_password):
             st.session_state["password_correct"] = True
             del st.session_state["password"]
         else:
