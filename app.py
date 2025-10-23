@@ -135,7 +135,7 @@ def main():
     
     # 사이드바
     with st.sidebar:
-        st.image("https://via.placeholder.com/200x80/FF6B35/FFFFFF?text=CallaMedia", use_container_width=True)
+        st.markdown("# 🏛️ 칼라미디어")
         st.markdown("### 📊 매출 분석 대시보드")
         st.markdown("---")
         
