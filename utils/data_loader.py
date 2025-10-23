@@ -28,7 +28,7 @@ def load_excel_file(uploaded_file) -> pd.DataFrame:
 
 def merge_sales_data(sales_files: List) -> pd.DataFrame:
     """
-    여러 매출 데이터 파일을 하나로 병합
+    여러 매출 데이터 파일을 하나로 병합 (Excel 또는 CSV)
     
     Args:
         sales_files: 업로드된 파일 리스트
@@ -39,9 +39,17 @@ def merge_sales_data(sales_files: List) -> pd.DataFrame:
     dfs = []
     
     for file in sales_files:
-        df = load_excel_file(file)
-        if df is not None:
-            dfs.append(df)
+        try:
+            # 파일 형식에 따라 로드
+            if file.name.endswith('.csv'):
+                df = pd.read_csv(file, encoding='utf-8-sig')
+            else:
+                df = load_excel_file(file)
+            
+            if df is not None:
+                dfs.append(df)
+        except Exception as e:
+            st.error(f"{file.name} 로드 중 오류: {e}")
     
     if dfs:
         merged_df = pd.concat(dfs, ignore_index=True)

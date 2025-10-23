@@ -193,9 +193,10 @@ def page_data_upload():
     st.markdown("""
     <div class="info-box">
     <strong>📌 데이터 업로드 안내</strong><br>
-    1. 거래처 리스트 파일을 먼저 업로드하세요 (선택사항)<br>
-    2. 매출 데이터 파일을 업로드하세요 (여러 파일 가능)<br>
-    3. 데이터가 자동으로 병합되고 분석 준비가 완료됩니다
+    1. <strong>거래처 리스트</strong> 파일을 먼저 업로드하세요 (Excel 또는 CSV, 선택사항)<br>
+    2. <strong>매출 데이터</strong> 파일을 업로드하세요 (Excel 또는 CSV, 여러 파일 가능)<br>
+    3. 브랜드 분석을 원하시면 <strong>'🏷️ 브랜드 업로드'</strong> 메뉴에서 브랜드리스트를 업로드하세요<br>
+    4. 데이터가 자동으로 병합되고 분석 준비가 완료됩니다
     </div>
     """, unsafe_allow_html=True)
     
@@ -204,15 +205,20 @@ def page_data_upload():
     with col1:
         st.markdown("#### 📋 거래처 리스트")
         client_file = st.file_uploader(
-            "거래처 정보 파일 업로드 (Excel)",
-            type=['xlsx', 'xls'],
+            "거래처 정보 파일 업로드 (Excel 또는 CSV)",
+            type=['xlsx', 'xls', 'csv'],
             key="client_uploader",
-            help="거래처 상세 정보가 담긴 Excel 파일"
+            help="거래처 상세 정보가 담긴 Excel 또는 CSV 파일"
         )
         
         if client_file:
             with st.spinner("거래처 데이터 로딩 중..."):
-                client_df = load_excel_file(client_file)
+                # 파일 형식에 따라 로드
+                if client_file.name.endswith('.csv'):
+                    client_df = pd.read_csv(client_file, encoding='utf-8-sig')
+                else:
+                    client_df = load_excel_file(client_file)
+                
                 if client_df is not None:
                     st.session_state['client_df'] = client_df
                     st.success(f"✅ 거래처 {len(client_df):,}개 로드 완료")
@@ -223,11 +229,11 @@ def page_data_upload():
     with col2:
         st.markdown("#### 💰 매출 데이터")
         sales_files = st.file_uploader(
-            "매출 데이터 파일 업로드 (Excel, 여러 파일 선택 가능)",
-            type=['xlsx', 'xls'],
+            "매출 데이터 파일 업로드 (Excel 또는 CSV, 여러 파일 선택 가능)",
+            type=['xlsx', 'xls', 'csv'],
             accept_multiple_files=True,
             key="sales_uploader",
-            help="기간별로 분리된 매출 데이터 파일들"
+            help="기간별로 분리된 매출 데이터 파일들 (Excel 또는 CSV)"
         )
         
         if sales_files:
