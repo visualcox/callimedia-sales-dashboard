@@ -72,7 +72,7 @@ def enrich_sales_with_client_info(sales_df: pd.DataFrame,
     """
     # 판매처명/거래처명 컬럼 찾기
     sales_client_col = None
-    for col in ['판매처명', '거래처명', '거래처', '고객명']:
+    for col in ['거래처명', '판매처명', '거래처', '고객명']:
         if col in sales_df.columns:
             sales_client_col = col
             break
@@ -107,6 +107,10 @@ def clean_and_prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: 정리된 데이터프레임
     """
+    # 판매처명을 거래처명으로 통일 (판매처명 = 거래처명)
+    if '판매처명' in df.columns and '거래처명' not in df.columns:
+        df = df.rename(columns={'판매처명': '거래처명'})
+    
     # 날짜 컬럼 찾기 및 변환
     date_cols = ['날짜', '일자', '전표일자', '판매일자', '거래일자']
     for col in date_cols:
@@ -162,7 +166,7 @@ def get_data_summary(df: pd.DataFrame) -> Dict:
             break
     
     # 고유 거래처 수
-    client_cols = ['판매처명', '거래처명', '거래처', '고객명']
+    client_cols = ['거래처명', '판매처명', '거래처', '고객명']
     for col in client_cols:
         if col in df.columns:
             summary['unique_clients'] = df[col].nunique()

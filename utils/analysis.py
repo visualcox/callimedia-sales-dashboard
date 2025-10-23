@@ -40,11 +40,11 @@ def analyze_sales_by_period(df: pd.DataFrame,
 
 
 def analyze_sales_by_client(df: pd.DataFrame,
-                            client_col: str = '판매처명',
+                            client_col: str = '거래처명',
                             amount_col: str = '공급가액',
                             top_n: int = 20) -> pd.DataFrame:
     """
-    거래처별 매출 분석
+    거래처별 매출 분석 (판매처명 = 거래처명)
     
     Args:
         df: 매출 데이터프레임
@@ -211,11 +211,11 @@ def predict_future_sales(df: pd.DataFrame,
 
 def get_top_growing_clients(df: pd.DataFrame,
                             date_col: str = '날짜',
-                            client_col: str = '판매처명',
+                            client_col: str = '거래처명',
                             amount_col: str = '공급가액',
                             top_n: int = 10) -> pd.DataFrame:
     """
-    성장률 높은 거래처 분석
+    성장률 높은 거래처 분석 (판매처명 = 거래처명)
     
     Args:
         df: 매출 데이터프레임

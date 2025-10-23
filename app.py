@@ -394,7 +394,7 @@ def page_client_analysis():
     
     # 거래처 컬럼 찾기
     client_col = None
-    for col in ['판매처명', '거래처명', '거래처', '고객명']:
+    for col in ['거래처명', '판매처명', '거래처', '고객명']:
         if col in df.columns:
             client_col = col
             break
