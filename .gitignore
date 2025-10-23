@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Streamlit
+.streamlit/secrets.toml
+
+# 데이터 파일 (보안)
+data/*.xlsx
+data/*.xls
+data/*.csv
+*.xlsx
+*.xls
+*.csv
+
+# 환경 변수
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 로그
+*.log
+
+# 임시 파일
+tmp/
+temp/

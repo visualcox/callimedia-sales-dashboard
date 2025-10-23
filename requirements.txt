@@ -1,0 +1,29 @@
+# Streamlit 및 기본 패키지
+streamlit==1.31.0
+pandas==2.2.0
+numpy==1.26.3
+
+# Excel 파일 처리
+openpyxl==3.1.2
+
+# 데이터 시각화
+plotly==5.18.0
+matplotlib==3.8.2
+seaborn==0.13.1
+
+# AI/LLM 관련
+openai==1.12.0
+google-generativeai==0.3.2
+
+# 벡터 DB
+chromadb==0.4.22
+
+# 인증 및 보안
+streamlit-authenticator==0.2.3
+
+# 데이터베이스 (Supabase)
+supabase==2.3.4
+
+# 유틸리티
+python-dateutil==2.8.2
+pytz==2024.1
