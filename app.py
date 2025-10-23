@@ -704,12 +704,6 @@ def page_ai_query():
         st.warning("🚧 AI 답변 기능은 추후 업데이트 예정입니다.")
 
 
-# 앱 실행
-if __name__ == "__main__":
-    if check_password():
-        main()
-
-
 def page_brand_upload():
     """브랜드 리스트 업로드 페이지"""
     st.markdown('<div class="sub-header">🏷️ 브랜드 리스트 업로드</div>', unsafe_allow_html=True)
@@ -1010,3 +1004,9 @@ def page_brand_analysis():
                         }),
                         use_container_width=True
                     )
+
+
+# 앱 실행
+if __name__ == "__main__":
+    if check_password():
+        main()
