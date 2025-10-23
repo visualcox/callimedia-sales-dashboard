@@ -12,5 +12,8 @@ plotly
 # 인증
 streamlit-authenticator
 
+# AI/LLM
+google-generativeai
+
 # 유틸리티
 python-dateutil
