@@ -118,10 +118,12 @@ def clean_and_prepare_data(df: pd.DataFrame) -> pd.DataFrame:
             df[col] = pd.to_datetime(df[col], errors='coerce')
     
     # 금액 컬럼 찾기 및 숫자 변환
-    amount_cols = ['공급가액', '금액', '합계금액', '매출금액', '판매금액']
+    amount_cols = ['공급가액', '금액', '합계금액', '매출금액', '판매금액', '공급가', '판매가', '단가', '금액(공급가액)']
     for col in amount_cols:
         if col in df.columns:
-            # 문자열로 된 금액을 숫자로 변환
+            # 문자열로 된 금액을 숫자로 변환 (쉼표, 원 기호 제거)
+            if df[col].dtype == 'object':
+                df[col] = df[col].astype(str).str.replace(',', '').str.replace('원', '').str.strip()
             df[col] = pd.to_numeric(df[col], errors='coerce')
     
     # 결측치 처리
@@ -159,10 +161,11 @@ def get_data_summary(df: pd.DataFrame) -> Dict:
             break
     
     # 총 매출액
-    amount_cols = ['공급가액', '금액', '합계금액', '매출금액']
+    amount_cols = ['공급가액', '금액', '합계금액', '매출금액', '판매금액', '공급가', '판매가', '단가', '금액(공급가액)']
     for col in amount_cols:
         if col in df.columns:
             summary['total_amount'] = df[col].sum()
+            summary['amount_col_used'] = col  # 사용된 컬럼명 저장
             break
     
     # 고유 거래처 수

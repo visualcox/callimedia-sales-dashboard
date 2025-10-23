@@ -269,6 +269,18 @@ def page_data_upload():
                         if summary['unique_clients']:
                             st.metric("거래처 수", f"{summary['unique_clients']:,}개")
                     
+                    # 감지된 주요 컴럼 표시
+                    col_names_preview = ', '.join(list(merged_df.columns[:8]))
+                    if len(merged_df.columns) > 8:
+                        col_names_preview += ', ...'
+                    
+                    st.info(f"""
+✅ **데이터 구조 확인**  
+📊 총 컴럼 수: **{len(merged_df.columns)}개**  
+💰 금액 컴럼: **{summary.get('amount_col_used', '발견되지 않음')}**  
+📋 실제 컴럼명: {col_names_preview}
+                    """)
+                    
                     # 데이터 미리보기
                     with st.expander("📊 매출 데이터 미리보기"):
                         st.dataframe(merged_df.head(20), use_container_width=True)
@@ -301,7 +313,7 @@ def page_sales_analysis():
             break
     
     amount_col = None
-    for col in ['공급가액', '금액', '합계금액', '매출금액']:
+    for col in ['공급가액', '금액', '합계금액', '매출금액', '판매금액', '공급가', '판매가', '단가', '금액(공급가액)']:
         if col in df.columns:
             amount_col = col
             break
@@ -400,7 +412,7 @@ def page_client_analysis():
             break
     
     amount_col = None
-    for col in ['공급가액', '금액', '합계금액', '매출금액']:
+    for col in ['공급가액', '금액', '합계금액', '매출금액', '판매금액', '공급가', '판매가', '단가', '금액(공급가액)']:
         if col in df.columns:
             amount_col = col
             break
@@ -514,7 +526,7 @@ def page_product_analysis():
     
     # 제품 컬럼 찾기
     product_col = None
-    for col in ['품목명', '제품명', '상품명', '품명']:
+    for col in ['품목명', '제품명', '상품명', '품명', '품목', '제품']:
         if col in df.columns:
             product_col = col
             break
@@ -525,7 +537,7 @@ def page_product_analysis():
         return
     
     amount_col = None
-    for col in ['공급가액', '금액', '합계금액', '매출금액']:
+    for col in ['공급가액', '금액', '합계금액', '매출금액', '판매금액', '공급가', '판매가', '단가', '금액(공급가액)']:
         if col in df.columns:
             amount_col = col
             break
@@ -605,7 +617,7 @@ def page_prediction():
             break
     
     amount_col = None
-    for col in ['공급가액', '금액', '합계금액', '매출금액']:
+    for col in ['공급가액', '금액', '합계금액', '매출금액', '판매금액', '공급가', '판매가', '단가', '금액(공급가액)']:
         if col in df.columns:
             amount_col = col
             break
@@ -765,7 +777,7 @@ def page_brand_upload():
                             
                             # 제품 컬럼 찾기
                             product_col = None
-                            for col in ['품목명', '제품명', '상품명', '품명']:
+                            for col in ['품목명', '제품명', '상품명', '품명', '품목', '제품']:
                                 if col in sales_df.columns:
                                     product_col = col
                                     break
@@ -820,7 +832,7 @@ def page_brand_analysis():
     
     # 금액 컬럼 찾기
     amount_col = None
-    for col in ['공급가액', '금액', '합계금액', '매출금액']:
+    for col in ['공급가액', '금액', '합계금액', '매출금액', '판매금액', '공급가', '판매가', '단가', '금액(공급가액)']:
         if col in df.columns:
             amount_col = col
             break
@@ -965,7 +977,7 @@ def page_brand_analysis():
         
         if selected_brand:
             product_col = None
-            for col in ['품목명', '제품명', '상품명', '품명']:
+            for col in ['품목명', '제품명', '상품명', '품명', '품목', '제품']:
                 if col in df.columns:
                     product_col = col
                     break
