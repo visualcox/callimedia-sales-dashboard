@@ -335,11 +335,12 @@ def page_sales_analysis():
         
         # 매출 추이 차트
         st.markdown("#### 📊 매출 추이")
+        period_labels = {'D': '일별', 'W': '주별', 'M': '월별', 'Q': '분기별', 'Y': '연도별'}
         fig = create_line_chart(
             period_sales,
             date_col,
             '매출액',
-            f"기간별 매출 추이 ({{'D': '일별', 'W': '주별', 'M': '월별', 'Q': '분기별', 'Y': '연도별'}[period]})",
+            f"기간별 매출 추이 ({period_labels[period]})",
             "매출액 (원)"
         )
         st.plotly_chart(fig, use_container_width=True)
