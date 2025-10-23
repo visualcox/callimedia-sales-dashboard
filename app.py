@@ -6,7 +6,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
-import hmac
 
 # 유틸리티 함수 임포트
 from utils.data_loader import (
@@ -96,7 +95,10 @@ def check_password():
         except:
             correct_password = "칼라미디어2024"  # 기본 비밀번호
         
-        if hmac.compare_digest(str(st.session_state["password"]), correct_password):
+        # 입력한 비밀번호 가져오기
+        entered_password = st.session_state.get("password", "")
+        
+        if entered_password == correct_password:
             st.session_state["password_correct"] = True
             del st.session_state["password"]
         else:
