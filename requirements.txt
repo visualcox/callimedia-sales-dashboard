@@ -1,7 +1,7 @@
 # Streamlit 및 기본 패키지
-streamlit
-pandas
-numpy
+streamlit>=1.28.0
+pandas>=2.0.0
+numpy>=1.24.0
 
 # Excel 파일 처리
 openpyxl

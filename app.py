@@ -595,14 +595,14 @@ def page_product_analysis():
         
         # 상세 데이터 테이블
         st.markdown("#### 📋 제품별 상세 데이터")
-        st.dataframe(
-            product_sales.style.format({
-                '총매출액': '{:,.0f}',
-                '평균단가': '{:,.0f}',
-                '매출비중(%)': '{:.2f}%'
-            }),
-            use_container_width=True
-        )
+        # 포맷팅된 데이터프레임 표시
+        styled_product = product_sales.copy()
+        for col in ['총매출액', '평균단가']:
+            if col in styled_product.columns:
+                styled_product[col] = styled_product[col].apply(lambda x: f"{x:,.0f}" if pd.notna(x) else "")
+        if '매출비중(%)' in styled_product.columns:
+            styled_product['매출비중(%)'] = styled_product['매출비중(%)'].apply(lambda x: f"{x:.2f}%" if pd.notna(x) else "")
+        st.dataframe(styled_product, use_container_width=True)
 
 
 def page_prediction():
@@ -682,12 +682,11 @@ def page_prediction():
         pred_df['date'] = pd.to_datetime(pred_df['date']).dt.strftime('%Y-%m')
         pred_df.columns = ['예측월', '예측매출액']
         
-        st.dataframe(
-            pred_df.style.format({
-                '예측매출액': '{:,.0f}원'
-            }),
-            use_container_width=True
-        )
+        # 포맷팅된 데이터프레임 표시
+        styled_pred = pred_df.copy()
+        if '예측매출액' in styled_pred.columns:
+            styled_pred['예측매출액'] = styled_pred['예측매출액'].apply(lambda x: f"{x:,.0f}원" if pd.notna(x) else "")
+        st.dataframe(styled_pred, use_container_width=True)
         
         # 총 예측 매출
         total_predicted = sum([p['predicted_sales'] for p in prediction_result['predictions']])
@@ -997,29 +996,29 @@ def page_brand_analysis():
                 # 상위 10개만 표시
                 growth_df_display = growth_df.head(10)
                 
-                st.dataframe(
-                    growth_df_display.style.format({
-                        '최근6개월': '{:,.0f}',
-                        '이전6개월': '{:,.0f}',
-                        '성장액': '{:,.0f}',
-                        '성장률(%)': '{:.2f}%'
-                    }).background_gradient(subset=['성장률(%)'], cmap='RdYlGn'),
-                    use_container_width=True
-                )
+                # 포맷팅된 데이터프레임 표시 (background_gradient 제거)
+                styled_df = growth_df_display.copy()
+                # 숫자 포맷팅
+                for col in ['최근6개월', '이전6개월', '성장액']:
+                    if col in styled_df.columns:
+                        styled_df[col] = styled_df[col].apply(lambda x: f"{x:,.0f}" if pd.notna(x) else "")
+                if '성장률(%)' in styled_df.columns:
+                    styled_df['성장률(%)'] = styled_df['성장률(%)'].apply(lambda x: f"{x:.2f}%" if pd.notna(x) else "")
+                
+                st.dataframe(styled_df, use_container_width=True)
         
         # 상세 데이터 테이블
         st.markdown("#### 📋 브랜드별 상세 데이터")
-        st.dataframe(
-            brand_sales.style.format({
-                '총매출액': '{:,.0f}',
-                '평균단가': '{:,.0f}',
-                '최대금액': '{:,.0f}',
-                '최소금액': '{:,.0f}',
-                '매출비중(%)': '{:.2f}%',
-                '누적비중(%)': '{:.2f}%'
-            }),
-            use_container_width=True
-        )
+        # 포맷팅된 데이터프레임 표시
+        styled_brand_sales = brand_sales.copy()
+        for col in ['총매출액', '평균단가', '최대금액', '최소금액']:
+            if col in styled_brand_sales.columns:
+                styled_brand_sales[col] = styled_brand_sales[col].apply(lambda x: f"{x:,.0f}" if pd.notna(x) else "")
+        for col in ['매출비중(%)', '누적비중(%)']:
+            if col in styled_brand_sales.columns:
+                styled_brand_sales[col] = styled_brand_sales[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+        
+        st.dataframe(styled_brand_sales, use_container_width=True)
         
         # 특정 브랜드 상세 분석
         st.markdown("---")
@@ -1069,14 +1068,14 @@ def page_brand_analysis():
                         st.plotly_chart(fig6, use_container_width=True)
                     
                     # 상세 테이블
-                    st.dataframe(
-                        brand_products.style.format({
-                            '총매출액': '{:,.0f}',
-                            '평균단가': '{:,.0f}',
-                            '브랜드내비중(%)': '{:.2f}%'
-                        }),
-                        use_container_width=True
-                    )
+                    # 포맷팅된 데이터프레임 표시
+                    styled_brand_prod = brand_products.copy()
+                    for col in ['총매출액', '평균단가']:
+                        if col in styled_brand_prod.columns:
+                            styled_brand_prod[col] = styled_brand_prod[col].apply(lambda x: f"{x:,.0f}" if pd.notna(x) else "")
+                    if '브랜드내뺄중(%)' in styled_brand_prod.columns:
+                        styled_brand_prod['브랜드내뺄중(%)'] = styled_brand_prod['브랜드내뺄중(%)'].apply(lambda x: f"{x:.2f}%" if pd.notna(x) else "")
+                    st.dataframe(styled_brand_prod, use_container_width=True)
 
 
 # 앱 실행
