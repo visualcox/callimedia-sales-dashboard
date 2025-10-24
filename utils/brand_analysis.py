@@ -9,9 +9,13 @@ from typing import List, Dict, Tuple
 def extract_brand_from_product(product_name: str, brand_list: List[str]) -> str:
     """
     제품명에서 브랜드명 추출
+    '품명 및 규격' 컬럼 형식: [브랜드명][제품명][제품규격 및 옵션정보]
+    
+    특수 규칙:
+    - "RenewedVision" 포함 시 → "프로프리젠터" 브랜드로 인식
     
     Args:
-        product_name: 제품명
+        product_name: 제품명 (형식: [브랜드명][제품명][규격])
         brand_list: 브랜드 리스트
     
     Returns:
@@ -21,6 +25,24 @@ def extract_brand_from_product(product_name: str, brand_list: List[str]) -> str:
         return '기타'
     
     product_name = str(product_name).strip()
+    
+    # 특수 규칙 1: RenewedVision → 프로프리젠터
+    if 'RENEWEDVISION' in product_name.upper() or 'RENEWED VISION' in product_name.upper():
+        # 브랜드 리스트에서 "프로프리젠터" 찾기
+        for brand in brand_list:
+            if '프로프리젠터' in brand or 'PROPRESENTER' in brand.upper():
+                return brand
+        # 브랜드 리스트에 없으면 기본값
+        return '프로프리젠터'
+    
+    # 첫 번째 [브랜드명] 부분 추출 시도
+    bracket_match = re.match(r'^\[([^\]]+)\]', product_name)
+    if bracket_match:
+        first_bracket = bracket_match.group(1).strip()
+        # 추출한 부분이 브랜드 리스트에 있는지 확인
+        for brand in brand_list:
+            if brand.upper() == first_bracket.upper():
+                return brand
     
     # 브랜드 리스트를 길이 순으로 정렬 (긴 것부터 매칭)
     sorted_brands = sorted(brand_list, key=len, reverse=True)

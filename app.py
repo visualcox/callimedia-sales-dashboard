@@ -778,7 +778,9 @@ def page_brand_upload():
     <strong>📌 브랜드 리스트 업로드 안내</strong><br>
     1. 취급 브랜드 목록이 담긴 CSV 파일을 업로드하세요<br>
     2. 매출 데이터의 제품명에서 자동으로 브랜드를 식별합니다<br>
-    3. 브랜드별 매출 분석이 가능해집니다
+    3. 브랜드별 매출 분석이 가능해집니다<br><br>
+    <strong>🎯 특수 브랜드 규칙:</strong><br>
+    • <strong>RenewedVision</strong> 포함 시 → <strong>프로프리젠터</strong> 브랜드로 자동 인식
     </div>
     """, unsafe_allow_html=True)
     
