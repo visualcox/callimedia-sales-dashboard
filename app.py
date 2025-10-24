@@ -792,7 +792,7 @@ def page_ai_query():
                         try:
                             import google.generativeai as genai
                             genai.configure(api_key=gemini_key)
-                            model = genai.GenerativeModel('gemini-1.5-flash')
+                            model = genai.GenerativeModel('gemini-2.5-flash')
                             
                             prompt = f"""당신은 매출 데이터 분석 전문가입니다. 다음 매출 데이터를 분석하고 사용자의 질문에 답변해주세요.
 
