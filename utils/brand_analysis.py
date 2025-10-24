@@ -71,8 +71,8 @@ def add_brand_column(sales_df: pd.DataFrame,
         pd.DataFrame: 브랜드 컬럼이 추가된 데이터프레임
     """
     if product_col not in sales_df.columns:
-        # 다른 제품 컬럼명 찾기
-        for col in ['제품명', '상품명', '품명', '품목']:
+        # 다른 제품 컬럼명 찾기 ('품명 및 규격' 우선)
+        for col in ['품명 및 규격', '품목명', '제품명', '상품명', '품명', '품목', '상품', '아이템', '물품', 'Product', 'Item']:
             if col in sales_df.columns:
                 product_col = col
                 break
@@ -163,8 +163,8 @@ def analyze_brand_trend(df: pd.DataFrame,
 def get_brand_product_detail(df: pd.DataFrame,
                              brand: str,
                              brand_col: str = '브랜드',
-                             product_col: str = '품목명',
-                             amount_col: str = '공급가액',
+                             product_col: str = '품명 및 규격',
+                             amount_col: str = '합계금액',
                              top_n: int = 10) -> pd.DataFrame:
     """
     특정 브랜드의 제품별 상세 분석

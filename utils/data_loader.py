@@ -111,14 +111,18 @@ def clean_and_prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     if '판매처명' in df.columns and '거래처명' not in df.columns:
         df = df.rename(columns={'판매처명': '거래처명'})
     
-    # 날짜 컬럼 찾기 및 변환
-    date_cols = ['날짜', '일자', '전표일자', '판매일자', '거래일자']
+    # 날짜 컬럼 찾기 및 변환 (일자 컬럼 우선)
+    date_cols = ['일자', '날짜', '전표일자', '판매일자', '거래일자']
     for col in date_cols:
         if col in df.columns:
+            # 일자 컬럼의 경우: 년월일 + 일련번호 형식 처리
+            if col == '일자':
+                # 날짜 부분만 추출 (첫 8자리: YYYYMMDD 또는 10자리: YYYY-MM-DD)
+                df[col] = df[col].astype(str).str.extract(r'(\d{4}[-/]?\d{2}[-/]?\d{2})', expand=False)
             df[col] = pd.to_datetime(df[col], errors='coerce')
     
-    # 금액 컬럼 찾기 및 숫자 변환
-    amount_cols = ['공급가액', '금액', '합계금액', '매출금액', '판매금액', '공급가', '판매가', '단가', '금액(공급가액)']
+    # 금액 컬럼 찾기 및 숫자 변환 (합계금액 우선)
+    amount_cols = ['합계금액', '공급가액', '금액', '매출금액', '판매금액', '공급가', '판매가', '단가', '금액(공급가액)']
     for col in amount_cols:
         if col in df.columns:
             # 문자열로 된 금액을 숫자로 변환 (쉼표, 원 기호 제거)
@@ -150,8 +154,8 @@ def get_data_summary(df: pd.DataFrame) -> Dict:
         'unique_clients': None
     }
     
-    # 날짜 범위
-    date_cols = ['날짜', '일자', '전표일자', '판매일자', '거래일자']
+    # 날짜 범위 (일자 컬럼 우선)
+    date_cols = ['일자', '날짜', '전표일자', '판매일자', '거래일자']
     for col in date_cols:
         if col in df.columns:
             summary['date_range'] = (
@@ -160,8 +164,8 @@ def get_data_summary(df: pd.DataFrame) -> Dict:
             )
             break
     
-    # 총 매출액
-    amount_cols = ['공급가액', '금액', '합계금액', '매출금액', '판매금액', '공급가', '판매가', '단가', '금액(공급가액)']
+    # 총 매출액 (합계금액 우선)
+    amount_cols = ['합계금액', '공급가액', '금액', '매출금액', '판매금액', '공급가', '판매가', '단가', '금액(공급가액)']
     for col in amount_cols:
         if col in df.columns:
             summary['total_amount'] = df[col].sum()
