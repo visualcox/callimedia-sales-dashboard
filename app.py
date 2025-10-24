@@ -696,21 +696,52 @@ def page_prediction():
 
 
 def page_ai_query():
-    """AI 질의응답 페이지"""
+    """AI 질의응답 페이지 (Gemini 또는 OpenAI 자동 fallback)"""
     st.markdown('<div class="sub-header">💬 AI 질의응답</div>', unsafe_allow_html=True)
     
-    st.info("🚧 이 기능은 개발 중입니다. Gemini 또는 OpenAI API를 연동하여 자연어로 매출 데이터를 질문할 수 있습니다.")
+    # API 키 확인 (Gemini 우선, OpenAI fallback)
+    gemini_key = None
+    openai_key = None
     
-    # API 키 확인
     try:
-        gemini_key = st.secrets["api_keys"]["gemini_api_key"]
-        has_api = True
+        gemini_key = st.secrets.get("GEMINI_API_KEY")
     except:
-        has_api = False
+        pass
     
-    if not has_api:
-        st.warning("⚠️ API 키가 설정되지 않았습니다. Streamlit Secrets에 API 키를 추가해주세요.")
+    try:
+        openai_key = st.secrets.get("OPENAI_API_KEY")
+    except:
+        pass
+    
+    # 어떤 API도 없을 경우
+    if not gemini_key and not openai_key:
+        st.warning("⚠️ API 키가 설정되지 않았습니다.")
+        st.markdown("""
+        <div class="info-box">
+        <strong>🔑 API 키 설정 방법</strong><br><br>
+        <strong>Streamlit Cloud:</strong><br>
+        1. 앱 대시보드 접속<br>
+        2. Settings → Secrets 클릭<br>
+        3. 다음 내용 입력:<br>
+        <code>
+        GEMINI_API_KEY = "여기에_API키_입력"<br>
+        # 또는<br>
+        OPENAI_API_KEY = "여기에_API키_입력"
+        </code><br><br>
+        <strong>API 키 발급:</strong><br>
+        • Gemini: <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a><br>
+        • OpenAI: <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>
+        </div>
+        """, unsafe_allow_html=True)
         return
+    
+    # 사용할 LLM 표시
+    if gemini_key:
+        st.info("🌟 현재 **Google Gemini 1.5 Flash** 모델을 사용하고 있습니다.")
+        llm_provider = "gemini"
+    else:
+        st.info("🤖 현재 **OpenAI GPT-4o-mini** 모델을 사용하고 있습니다.")
+        llm_provider = "openai"
     
     if 'merged_sales_df' not in st.session_state:
         st.warning("⚠️ 먼저 데이터를 업로드해주세요.")
@@ -719,33 +750,52 @@ def page_ai_query():
     df = st.session_state['merged_sales_df']
     
     # 데이터 요약 생성
-    summary_text = f"""
-    데이터 요약:
-    - 총 레코드 수: {len(df):,}건
-    - 컬럼: {', '.join(df.columns.tolist())}
-    - 기간: {df[df.columns[0]].min() if len(df) > 0 else 'N/A'} ~ {df[df.columns[0]].max() if len(df) > 0 else 'N/A'}
+    date_cols = ['일자', '날짜', '전표일자', '판매일자', '거래일자']
+    date_col = None
+    for col in date_cols:
+        if col in df.columns:
+            date_col = col
+            break
     
-    샘플 데이터 (상위 5개):
-    {df.head(5).to_string()}
-    """
+    date_range = "N/A"
+    if date_col:
+        try:
+            date_range = f"{df[date_col].min()} ~ {df[date_col].max()}"
+        except:
+            pass
+    
+    summary_text = f"""
+데이터 요약:
+- 총 레코드 수: {len(df):,}건
+- 컬럼: {', '.join(df.columns.tolist())}
+- 기간: {date_range}
+
+샘플 데이터 (상위 5개):
+{df.head(5).to_string()}
+"""
     
     # 질문 입력
     question = st.text_area(
         "매출 데이터에 대해 질문하세요",
-        placeholder="예: 2024년 상반기 매출은 얼마인가요?\n최근 3개월 매출 추이는?\n가장 많이 팔린 제품은?",
+        placeholder="예:\n- 판매가 있다가 최근 6개월 동안 판매가 없는 거래처 리스트를 알려줘, 그 업체의 연락처도 알려줘\n- 최근 3개월 매출 추이는?\n- 가장 많이 팔린 제품은?",
         height=100
     )
     
     if st.button("🤖 질문하기", type="primary"):
         if question:
-            with st.spinner("AI가 답변을 생성하는 중..."):
+            with st.spinner(f"{llm_provider.upper()} AI가 답변을 생성하는 중..."):
                 try:
-                    import google.generativeai as genai
-                    genai.configure(api_key=gemini_key)
-                    model = genai.GenerativeModel('gemini-pro')
+                    response_text = None
                     
-                    prompt = f"""당신은 매출 데이터 분석 전문가입니다. 다음 매출 데이터를 분석하고 사용자의 질문에 답변해주세요.
-                    
+                    # Gemini 사용
+                    if llm_provider == "gemini":
+                        try:
+                            import google.generativeai as genai
+                            genai.configure(api_key=gemini_key)
+                            model = genai.GenerativeModel('gemini-1.5-flash')
+                            
+                            prompt = f"""당신은 매출 데이터 분석 전문가입니다. 다음 매출 데이터를 분석하고 사용자의 질문에 답변해주세요.
+
 {summary_text}
 
 사용자 질문: {question}
@@ -753,18 +803,46 @@ def page_ai_query():
 답변 시 주의사항:
 1. 구체적인 숫자와 통계를 포함하세요
 2. 한국어로 명확하게 답변하세요
-3. 데이터에서 확인할 수 없는 내용은 '데이터에서 확인할 수 없습니다'라고 말하세요
+3. 데이터에서 확인할 수 없는 내용은 '데이터에서 확인할 수 없습니다'라고 명시하세요
 4. 가능하면 인사이트를 제공하세요
 """
+                            response = model.generate_content(prompt)
+                            response_text = response.text
+                        except Exception as gemini_error:
+                            st.warning(f"⚠️ Gemini API 오류: {gemini_error}")
+                            # OpenAI로 fallback
+                            if openai_key:
+                                st.info("🔄 OpenAI로 전환합니다...")
+                                llm_provider = "openai"
                     
-                    response = model.generate_content(prompt)
+                    # OpenAI 사용
+                    if llm_provider == "openai" and not response_text:
+                        try:
+                            from openai import OpenAI
+                            client = OpenAI(api_key=openai_key)
+                            
+                            completion = client.chat.completions.create(
+                                model="gpt-4o-mini",
+                                messages=[
+                                    {"role": "system", "content": "당신은 매출 데이터 분석 전문가입니다. 한국어로 명확하고 구체적으로 답변하세요."},
+                                    {"role": "user", "content": f"{summary_text}\n\n질문: {question}"}
+                                ]
+                            )
+                            response_text = completion.choices[0].message.content
+                        except Exception as openai_error:
+                            st.error(f"❌ OpenAI API 오류: {openai_error}")
                     
-                    st.markdown("### 🤖 AI 답변")
-                    st.markdown(response.text)
+                    # 답변 표시
+                    if response_text:
+                        st.markdown("### 🤖 AI 답변")
+                        st.markdown(response_text)
+                        st.caption(f"🏷️ 모델: {llm_provider.upper()}")
+                    else:
+                        st.error("❌ 답변 생성에 실패했습니다.")
                     
                 except Exception as e:
-                    st.error(f"❌ AI 답변 생성 중 오류 발생: {e}")
-                    st.info("💡 Secrets에 올바른 Gemini API 키가 설정되어 있는지 확인해주세요.")
+                    st.error(f"❌ AI 답변 생성 중 오류 발생: {str(e)}")
+                    st.info("💡 Streamlit Cloud Secrets에 올바른 API 키가 설정되어 있는지 확인해주세요.")
         else:
             st.warning("⚠️ 질문을 입력해주세요.")
 
