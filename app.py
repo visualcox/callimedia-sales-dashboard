@@ -749,7 +749,32 @@ def page_ai_query():
     
     df = st.session_state['merged_sales_df']
     
-    # 데이터 요약 생성
+    # 금액 컬럼 찾기
+    amount_col = None
+    for col in ['합계금액', '공급가액', '금액', '매출금액', '판매금액']:
+        if col in df.columns:
+            amount_col = col
+            break
+    
+    if not amount_col:
+        st.error("❌ 금액 컬럼을 찾을 수 없습니다.")
+        return
+    
+    # 거래처 컬럼 찾기
+    client_col = None
+    for col in ['판매처명', '거래처명', '거래처', '고객명']:
+        if col in df.columns:
+            client_col = col
+            break
+    
+    # 제품 컬럼 찾기
+    product_col = None
+    for col in ['품명 및 규격', '품명', '제품명', '상품명']:
+        if col in df.columns:
+            product_col = col
+            break
+    
+    # 날짜 컬럼 찾기
     date_cols = ['일자', '날짜', '전표일자', '판매일자', '거래일자']
     date_col = None
     for col in date_cols:
@@ -757,6 +782,7 @@ def page_ai_query():
             date_col = col
             break
     
+    # 상세한 데이터 분석
     date_range = "N/A"
     if date_col:
         try:
@@ -764,14 +790,67 @@ def page_ai_query():
         except:
             pass
     
-    summary_text = f"""
-데이터 요약:
-- 총 레코드 수: {len(df):,}건
-- 컬럼: {', '.join(df.columns.tolist())}
-- 기간: {date_range}
+    # 전체 데이터 통계 생성
+    total_sales = df[amount_col].sum()
+    total_transactions = len(df)
+    avg_transaction = df[amount_col].mean()
+    
+    # 거래처별 분석
+    client_analysis = ""
+    if client_col:
+        top_clients = df.groupby(client_col)[amount_col].agg(['sum', 'count']).sort_values('sum', ascending=False).head(10)
+        client_analysis = f"""\n\n거래처별 매출 TOP 10:
+{top_clients.to_string()}
 
-샘플 데이터 (상위 5개):
-{df.head(5).to_string()}
+총 거래처 수: {df[client_col].nunique()}개"""
+    
+    # 제품별 분석
+    product_analysis = ""
+    if product_col:
+        top_products = df.groupby(product_col)[amount_col].agg(['sum', 'count']).sort_values('sum', ascending=False).head(10)
+        product_analysis = f"""\n\n제품별 매출 TOP 10:
+{top_products.to_string()}
+
+총 제품 수: {df[product_col].nunique()}개"""
+    
+    # 브랜드별 분석
+    brand_analysis = ""
+    if '브랜드' in df.columns:
+        top_brands = df.groupby('브랜드')[amount_col].agg(['sum', 'count']).sort_values('sum', ascending=False).head(10)
+        brand_analysis = f"""\n\n브랜드별 매출 TOP 10:
+{top_brands.to_string()}
+
+총 브랜드 수: {df['브랜드'].nunique()}개"""
+    
+    # 기간별 분석 (월별)
+    time_analysis = ""
+    if date_col:
+        try:
+            df_temp = df.copy()
+            df_temp['년월'] = pd.to_datetime(df_temp[date_col].astype(str).str[:8]).dt.to_period('M')
+            monthly_sales = df_temp.groupby('년월')[amount_col].sum().tail(12)
+            time_analysis = f"""\n\n최근 12개월 월별 매출:
+{monthly_sales.to_string()}"""
+        except:
+            pass
+    
+    # 연락처 정보
+    contact_info = ""
+    contact_cols = [col for col in df.columns if '연락처' in col or '전화' in col or 'TEL' in col.upper()]
+    if contact_cols:
+        contact_info = f"\n\n사용 가능한 연락처 컬럼: {', '.join(contact_cols)}"
+    
+    summary_text = f"""=== 칼라미디어 매출 데이터 분석 보고서 ===
+
+📊 전체 개요:
+- 분석 기간: {date_range}
+- 총 거래 건수: {total_transactions:,}건
+- 총 매출액: {total_sales:,.0f}원
+- 평균 거래액: {avg_transaction:,.0f}원
+- 데이터 컬럼: {', '.join(df.columns.tolist())}{client_analysis}{product_analysis}{brand_analysis}{time_analysis}{contact_info}
+
+📌 샘플 데이터 (최근 5건):
+{df.tail(5).to_string()}
 """
     
     # 질문 입력
@@ -794,17 +873,28 @@ def page_ai_query():
                             genai.configure(api_key=gemini_key)
                             model = genai.GenerativeModel('gemini-2.5-flash')
                             
-                            prompt = f"""당신은 매출 데이터 분석 전문가입니다. 다음 매출 데이터를 분석하고 사용자의 질문에 답변해주세요.
+                            prompt = f"""당신은 칼라미디어의 매출 데이터 분석 전문가입니다. 
+
+위 데이터는 칼라미디어의 실제 B2B 매출 거래 데이터입니다. 아래의 상세한 분석 자료를 기반으로 사용자 질문에 정확하게 답변해주세요.
 
 {summary_text}
 
 사용자 질문: {question}
 
-답변 시 주의사항:
-1. 구체적인 숫자와 통계를 포함하세요
-2. 한국어로 명확하게 답변하세요
-3. 데이터에서 확인할 수 없는 내용은 '데이터에서 확인할 수 없습니다'라고 명시하세요
-4. 가능하면 인사이트를 제공하세요
+답변 시 필수 준수사항:
+1. **위 데이터에 나온 실제 숫자와 통계를 활용**하세요 (거래처명, 금액, 제품명 등)
+2. 거래처 리스트를 요청하면 위 데이터의 실제 거래처명을 나열하세요
+3. 연락처를 요청하면 데이터에 있는 연락처 컬럼을 확인하고, 없으면 '데이터에 연락처 정보가 포함되어 있지 않습니다'라고 답변하세요
+4. 추세/패턴 질문은 위의 월별 매출 데이터를 분석하세요
+5. 한국어로 명확하고 실용적으로 답변하세요
+6. **절대로 개발 가이드나 코드를 제공하지 마세요** - 사용자는 이미 완성된 시스템을 사용 중입니다
+7. 위 데이터에 없는 내용은 추측하지 말고 '현재 데이터로는 확인할 수 없습니다'라고 명시하세요
+8. 인사이트는 반드시 위 데이터의 실제 패턴을 기반으로 제공하세요
+
+답변 형식:
+- 질문에 직접적으로 답변 (거래처명, 금액 등 구체적 정보 포함)
+- 필요시 표 형식이나 리스트 형식 사용
+- 추가 인사이트 제공 (데이터 기반)
 """
                             response = model.generate_content(prompt)
                             response_text = response.text
@@ -824,8 +914,17 @@ def page_ai_query():
                             completion = client.chat.completions.create(
                                 model="gpt-4o-mini",
                                 messages=[
-                                    {"role": "system", "content": "당신은 매출 데이터 분석 전문가입니다. 한국어로 명확하고 구체적으로 답변하세요."},
-                                    {"role": "user", "content": f"{summary_text}\n\n질문: {question}"}
+                                    {"role": "system", "content": """당신은 칼라미디어의 매출 데이터 분석 전문가입니다.
+
+필수 준수사항:
+1. 사용자가 제공한 데이터의 실제 숫자와 통계를 활용하세요
+2. 거래처 리스트를 요청하면 데이터의 실제 거래처명을 나열하세요
+3. 연락처를 요청하면 데이터의 연락처 컬럼을 확인하세요
+4. 추세/패턴 질문은 월별 매출 데이터를 분석하세요
+5. **절대로 개발 가이드나 코드를 제공하지 마세요**
+6. 데이터에 없는 내용은 '현재 데이터로는 확인할 수 없습니다'라고 명시하세요
+7. 한국어로 명확하고 실용적으로 답변하세요"""},
+                                    {"role": "user", "content": f"{summary_text}\n\n사용자 질문: {question}"}
                                 ]
                             )
                             response_text = completion.choices[0].message.content
