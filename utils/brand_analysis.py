@@ -6,17 +6,14 @@ import re
 from typing import List, Dict, Tuple
 
 
-def extract_brand_from_product(product_name: str, brand_list: List[str]) -> str:
+def extract_brand_from_product(product_name: str, brand_mapping: Dict[str, List[str]]) -> str:
     """
-    제품명에서 브랜드명 추출
+    제품명에서 브랜드명 추출 (유사표기 모두 지원)
     '품명 및 규격' 컬럼 형식: [브랜드명][제품명][제품규격 및 옵션정보]
-    
-    특수 규칙:
-    - "RenewedVision" 포함 시 → "프로프리젠터" 브랜드로 인식
     
     Args:
         product_name: 제품명 (형식: [브랜드명][제품명][규격])
-        brand_list: 브랜드 리스트
+        brand_mapping: {대표브랜드명: [모든_가능한_표기들]}
     
     Returns:
         str: 추출된 브랜드명 (없으면 '기타')
@@ -25,69 +22,121 @@ def extract_brand_from_product(product_name: str, brand_list: List[str]) -> str:
         return '기타'
     
     product_name = str(product_name).strip()
+    product_name_upper = product_name.upper()
     
-    # 특수 규칙 1: RenewedVision → 프로프리젠터
-    if 'RENEWEDVISION' in product_name.upper() or 'RENEWED VISION' in product_name.upper():
-        # 브랜드 리스트에서 "프로프리젠터" 찾기
-        for brand in brand_list:
-            if '프로프리젠터' in brand or 'PROPRESENTER' in brand.upper():
-                return brand
-        # 브랜드 리스트에 없으면 기본값
-        return '프로프리젠터'
-    
-    # 첫 번째 [브랜드명] 부분 추출 시도
+    # 1단계: 첫 번째 [브랜드명] 부분 추출 시도
     bracket_match = re.match(r'^\[([^\]]+)\]', product_name)
     if bracket_match:
         first_bracket = bracket_match.group(1).strip()
-        # 추출한 부분이 브랜드 리스트에 있는지 확인
-        for brand in brand_list:
-            if brand.upper() == first_bracket.upper():
-                return brand
-    
-    # 브랜드 리스트를 길이 순으로 정렬 (긴 것부터 매칭)
-    sorted_brands = sorted(brand_list, key=len, reverse=True)
-    
-    for brand in sorted_brands:
-        # 대소문자 구분 없이 매칭
-        if brand.upper() in product_name.upper():
-            return brand
+        first_bracket_upper = first_bracket.upper()
         
-        # 공백이나 특수문자 앞뒤로 매칭
-        pattern = rf'\b{re.escape(brand)}\b'
-        if re.search(pattern, product_name, re.IGNORECASE):
-            return brand
+        # 모든 브랜드의 모든 표기와 비교
+        for main_brand, variants in brand_mapping.items():
+            for variant in variants:
+                if variant.upper() == first_bracket_upper:
+                    return main_brand
+    
+    # 2단계: 모든 브랜드의 모든 표기로 매칭 (긴 표기부터 우선)
+    # 모든 표기를 길이 순으로 정렬
+    all_variants_with_brand = []
+    for main_brand, variants in brand_mapping.items():
+        for variant in variants:
+            all_variants_with_brand.append((variant, main_brand))
+    
+    # 길이 순으로 정렬 (긴 것부터)
+    all_variants_with_brand.sort(key=lambda x: len(x[0]), reverse=True)
+    
+    for variant, main_brand in all_variants_with_brand:
+        variant_upper = variant.upper()
+        
+        # 대소문자 구분 없이 포함 여부 확인
+        if variant_upper in product_name_upper:
+            return main_brand
+        
+        # 단어 경계 매칭 (공백이나 특수문자 앞뒤)
+        try:
+            pattern = rf'\b{re.escape(variant)}\b'
+            if re.search(pattern, product_name, re.IGNORECASE):
+                return main_brand
+        except:
+            pass  # 정규식 오류 무시
     
     return '기타'
 
 
-def load_brand_list(brand_df: pd.DataFrame) -> List[str]:
+def load_brand_list(brand_df: pd.DataFrame) -> Dict[str, List[str]]:
     """
-    브랜드 리스트 DataFrame에서 브랜드명 추출
+    브랜드 리스트 DataFrame에서 브랜드 매핑 정보 추출
+    
+    파일 구조:
+    - 컬럼 1: 브랜드 한글 (대표 브랜드명)
+    - 컬럼 2: 브랜드 영문
+    - 컬럼 3: 유사표기 (쉼표로 구분)
     
     Args:
-        brand_df: 브랜드 리스트 DataFrame
+        brand_df: 브랜드 리스트 DataFrame (3컬럼: 한글, 영문, 유사표기)
     
     Returns:
-        List[str]: 브랜드명 리스트
+        Dict[str, List[str]]: {대표브랜드명: [모든_가능한_표기들]}
     """
-    # 첫 번째 컬럼을 브랜드명으로 간주
-    if len(brand_df.columns) > 0:
+    brand_mapping = {}
+    
+    if len(brand_df.columns) < 2:
+        # 구형식 (컬럼 1개): 첫 번째 컬럼만 사용
         brand_col = brand_df.columns[0]
-        brands = brand_df[brand_col].dropna().astype(str).str.strip().tolist()
-        return [b for b in brands if b]
-    return []
+        for brand in brand_df[brand_col].dropna().astype(str).str.strip():
+            if brand:
+                brand_mapping[brand] = [brand]
+        return brand_mapping
+    
+    # 신형식 (컬럼 3개): 한글, 영문, 유사표기
+    korean_col = brand_df.columns[0]  # 브랜드 한글
+    english_col = brand_df.columns[1]  # 브랜드 영문
+    similar_col = brand_df.columns[2] if len(brand_df.columns) > 2 else None  # 유사표기
+    
+    for idx, row in brand_df.iterrows():
+        korean = str(row[korean_col]).strip() if pd.notna(row[korean_col]) else ""
+        english = str(row[english_col]).strip() if pd.notna(row[english_col]) else ""
+        
+        if not korean:
+            continue
+        
+        # 대표 브랜드명 = 한글
+        main_brand = korean
+        
+        # 모든 가능한 표기 수집
+        all_variants = [korean]
+        
+        # 영문 추가
+        if english:
+            all_variants.append(english)
+        
+        # 유사표기 추가
+        if similar_col and pd.notna(row[similar_col]):
+            similar_text = str(row[similar_col]).strip()
+            if similar_text:
+                # 쉼표로 분리
+                similar_items = [s.strip() for s in similar_text.split(',') if s.strip()]
+                all_variants.extend(similar_items)
+        
+        # 중복 제거
+        all_variants = list(dict.fromkeys(all_variants))  # 순서 유지하면서 중복 제거
+        
+        brand_mapping[main_brand] = all_variants
+    
+    return brand_mapping
 
 
 def add_brand_column(sales_df: pd.DataFrame, 
-                     brand_list: List[str],
+                     brand_mapping: Dict[str, List[str]],
                      product_col: str = '품목명') -> pd.DataFrame:
     """
-    매출 데이터에 브랜드 컬럼 추가
+    매출 데이터에 브랜드 컬럼 추가 (유사표기 모두 지원)
     
     Args:
         sales_df: 매출 데이터프레임
-        brand_list: 브랜드 리스트
-        product_col: 제품명 컬럼
+        brand_mapping: {대표브랜드명: [모든_가능한_표기들]}
+        product_col: 제품명 컬러
     
     Returns:
         pd.DataFrame: 브랜드 컬럼이 추가된 데이터프레임
@@ -101,7 +150,7 @@ def add_brand_column(sales_df: pd.DataFrame,
     
     if product_col in sales_df.columns:
         sales_df['브랜드'] = sales_df[product_col].apply(
-            lambda x: extract_brand_from_product(x, brand_list)
+            lambda x: extract_brand_from_product(x, brand_mapping)
         )
     else:
         sales_df['브랜드'] = '기타'

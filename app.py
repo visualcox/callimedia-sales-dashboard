@@ -882,20 +882,22 @@ def page_brand_upload():
                     st.session_state['brand_df'] = brand_df
                     
                     # 브랜드 리스트 추출
-                    brand_list = load_brand_list(brand_df)
-                    st.session_state['brand_list'] = brand_list
+                    brand_mapping = load_brand_list(brand_df)
+                    st.session_state['brand_mapping'] = brand_mapping
                     
-                    st.success(f"✅ 브랜드 {len(brand_list)}개 로드 완료")
+                    st.success(f"✅ 브랜드 {len(brand_mapping)}개 로드 완료")
                     
                     # 브랜드 목록 표시
                     st.markdown("#### 📋 등록된 브랜드")
                     
-                    # 3열로 표시
+                    # 3열로 표시 (대표 브랜드명만)
                     cols = st.columns(3)
-                    for idx, brand in enumerate(brand_list):
+                    for idx, brand in enumerate(brand_mapping.keys()):
                         col_idx = idx % 3
                         with cols[col_idx]:
-                            st.markdown(f"✓ **{brand}**")
+                            # 유사표기 개수 표시
+                            variant_count = len(brand_mapping[brand])
+                            st.markdown(f"✓ **{brand}** ({variant_count})")
                     
                     # 매출 데이터가 있으면 브랜드 컬럼 추가
                     if 'merged_sales_df' in st.session_state:
@@ -910,7 +912,7 @@ def page_brand_upload():
                                     break
                             
                             if product_col:
-                                sales_df = add_brand_column(sales_df, brand_list, product_col)
+                                sales_df = add_brand_column(sales_df, brand_mapping, product_col)
                                 st.session_state['merged_sales_df'] = sales_df
                                 
                                 # 브랜드 통계
@@ -923,7 +925,7 @@ def page_brand_upload():
                                 with metric_cols[0]:
                                     st.metric("식별된 브랜드", f"{brand_stats.get('총_브랜드_수', 0)}개")
                                 with metric_cols[1]:
-                                    st.metric("등록 브랜드", f"{len(brand_list)}개")
+                                    st.metric("등록 브랜드", f"{len(brand_mapping)}개")
                                 with metric_cols[2]:
                                     st.metric("미분류(기타)", f"{brand_stats.get('브랜드별_거래건수', {}).get('기타', 0):,}건")
                                 with metric_cols[3]:
@@ -952,7 +954,7 @@ def page_brand_analysis():
     st.markdown('<div class="sub-header">🏷️ 브랜드별 매출 분석</div>', unsafe_allow_html=True)
     
     # 브랜드 리스트 확인
-    if 'brand_list' not in st.session_state or 'merged_sales_df' not in st.session_state:
+    if 'brand_mapping' not in st.session_state or 'merged_sales_df' not in st.session_state:
         st.warning("⚠️ 먼저 브랜드 리스트와 매출 데이터를 업로드해주세요.")
         st.info("💡 사이드바에서 '📁 데이터 업로드' → '🏷️ 브랜드 업로드' 메뉴를 이용하세요.")
         return
